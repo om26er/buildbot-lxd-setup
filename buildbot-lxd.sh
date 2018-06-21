@@ -38,6 +38,6 @@ echo Configuring workers
 for worker in ${CONTAINER_WORKER_1} ${CONTAINER_WORKER_2}
 do
         lxc exec ${worker} -- pip3 install buildbot-worker
-        lxc exec ${worker} -- buildbot-worker create-worker ~/worker ${MASTER_CONTAINER_IP} example-worker pass
+        lxc exec ${worker} -- buildbot-worker create-worker ~/worker ${MASTER_CONTAINER_IP} ${worker} secret_supersecret
         lxc exec ${worker} -- buildbot-worker start ~/worker
 done

@@ -1,6 +1,10 @@
 #!/bin/sh
 
-set -e
+set -ev
+
+CONTAINER_MASTER=master
+CONTAINER_WORKER_1=worker-1
+CONTAINER_WORKER_2=worker-2
 
 apt update
 apt purge lxd* lxc* -y
@@ -18,18 +22,25 @@ done
 
 cat config/lxd_preseed.yaml | lxd init --preseed
 
-for container in master worker-1 worker-2
+for container in ${CONTAINER_MASTER} ${CONTAINER_WORKER_1} ${CONTAINER_WORKER_2}
 do
-        lxc launch ubuntu:16.04 $container
+        lxc launch ubuntu:16.04 ${container}
         echo Waiting 6 seconds for internet
         sleep 6
-        lxc exec $container -- sh -c 'apt update'
-        lxc exec $container -- sh -c 'apt dist-upgrade -y'
-        lxc exec $container -- sh -c 'apt install python3-pip -y'
+        lxc exec ${container} -- sh -c 'apt update'
+        lxc exec ${container} -- sh -c 'apt install python3-pip -y'
 done
 
 echo Configuring master
-lxc exec master -- sh -c 'buildbot create-master /root/master'
-lxc exec master -- sh -c 'cp /root/master/master.cfg.sample /root/master/master.cfg'
-lxc exec master -- sh -c 'buildbot start /root/master'
+lxc exec ${CONTAINER_MASTER} -- sh -c 'pip install "buildbot[bundle]"'
+lxc exec ${CONTAINER_MASTER} -- sh -c 'buildbot create-master ~/master'
+lxc exec ${CONTAINER_MASTER} -- sh -c 'cp ~/master/master.cfg.sample ~/master/master.cfg'
+lxc exec ${CONTAINER_MASTER} -- sh -c 'buildbot start ~/master'
 
+echo Configuring workers
+MASTER_IP=$(lxc exec ${CONTAINER_MASTER} -- sh -c "hostname -I | cut -d ' ' -f1")
+for worker in ${CONTAINER_WORKER_1} ${CONTAINER_WORKER_2}
+do
+        lxc exec ${worker} -- sh -c 'pip install buildbot-worker'
+        lxc exec ${worker} -- sh -c 'buildbot-worker create-worker ~/worker ${MASTER_IP} example-worker pass'
+done

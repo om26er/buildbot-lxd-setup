@@ -19,15 +19,15 @@ do
         lxc launch ubuntu:16.04 ${container}
         echo Waiting 6 seconds for internet
         sleep 6
-        lxc exec ${container} -- sh -c 'apt update'
-        lxc exec ${container} -- sh -c 'apt install python3-pip -y'
+        lxc exec ${container} -- apt update
+        lxc exec ${container} -- apt install python3-pip -y
 done
 
 echo Configuring master
-lxc exec ${CONTAINER_MASTER} -- sh -c 'pip3 install "buildbot[bundle]"'
-lxc exec ${CONTAINER_MASTER} -- sh -c 'buildbot create-master ~/master'
-lxc exec ${CONTAINER_MASTER} -- sh -c 'cp ~/master/master.cfg.sample ~/master/master.cfg'
-lxc exec ${CONTAINER_MASTER} -- sh -c 'buildbot start ~/master'
+lxc exec ${CONTAINER_MASTER} -- pip3 install "buildbot[bundle]"
+lxc exec ${CONTAINER_MASTER} -- buildbot create-master ~/master
+lxc exec ${CONTAINER_MASTER} -- cp ~/master/master.cfg.sample ~/master/master.cfg
+lxc exec ${CONTAINER_MASTER} -- buildbot start ~/master
 
 MASTER_CONTAINER_IP=$(lxc exec ${CONTAINER_MASTER} -- sh -c "hostname -I | cut -d ' ' -f1")
 PUBLIC_IP=$(curl ipinfo.io/ip)
@@ -37,7 +37,7 @@ lxc config device add ${CONTAINER_MASTER} http proxy listen=tcp:${PUBLIC_IP}:801
 echo Configuring workers
 for worker in ${CONTAINER_WORKER_1} ${CONTAINER_WORKER_2}
 do
-        lxc exec ${worker} -- sh -c 'pip3 install buildbot-worker'
-        lxc exec ${worker} -- sh -c 'buildbot-worker create-worker ~/worker ${MASTER_IP} example-worker pass'
-        lxc exec ${worker} -- sh -c 'buildbot-worker start ~/worker'
+        lxc exec ${worker} -- pip3 install buildbot-worker
+        lxc exec ${worker} -- buildbot-worker create-worker ~/worker ${MASTER_CONTAINER_IP} example-worker pass
+        lxc exec ${worker} -- buildbot-worker start ~/worker
 done

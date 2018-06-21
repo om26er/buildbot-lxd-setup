@@ -9,6 +9,7 @@ CONTAINER_WORKER_2=worker-2
 apt update
 apt purge lxd* lxc* -y
 snap install lxd
+# FIXME need to find a better way to ensure LXD is up and running
 echo Waiting 12 seconds so lxd daemon starts
 sleep 12
 
@@ -17,6 +18,7 @@ cat config/lxd_preseed.yaml | lxd init --preseed
 for container in ${CONTAINER_MASTER} ${CONTAINER_WORKER_1} ${CONTAINER_WORKER_2}
 do
         lxc launch ubuntu:16.04 ${container}
+        # FIXME: need to find a better way to ensure internet is working inside container (ping ?)
         echo Waiting 6 seconds for internet
         sleep 6
         lxc exec ${container} -- apt update
@@ -27,8 +29,10 @@ echo Configuring master
 lxc exec ${CONTAINER_MASTER} -- pip3 install "buildbot[bundle]"
 lxc exec ${CONTAINER_MASTER} -- buildbot create-master ~/master
 MASTER_HOME=$(lxc exec ${CONTAINER_MASTER} -- sh -c 'echo $HOME')
-lxc file push config/master.cfg ${CONTAINER_MASTER}${MASTER_HOME}/master
-lxc exec ${CONTAINER_MASTER} -- buildbot start ~/master
+lxc file push config/master.cfg ${CONTAINER_MASTER}${MASTER_HOME}/master/
+lxc file push config/buildbot-master.service ${CONTAINER_MASTER}/etc/systemd/system/
+lxc exec ${CONTAINER_MASTER} -- systemctl enable buildbot-master
+lxc exec ${CONTAINER_MASTER} -- systemctl start buildbot-master
 
 MASTER_CONTAINER_IP=$(lxc exec ${CONTAINER_MASTER} -- sh -c "hostname -I | cut -d ' ' -f1")
 PUBLIC_IP=$(curl ipinfo.io/ip)
@@ -40,5 +44,7 @@ for worker in ${CONTAINER_WORKER_1} ${CONTAINER_WORKER_2}
 do
         lxc exec ${worker} -- pip3 install buildbot-worker
         lxc exec ${worker} -- buildbot-worker create-worker ~/worker ${MASTER_CONTAINER_IP} ${worker} secret_supersecret
-        lxc exec ${worker} -- buildbot-worker start ~/worker
+        lxc file push config/buildbot-worker.service ${worker}/etc/systemd/system/
+        lxc exec ${CONTAINER_MASTER} -- systemctl enable buildbot-worker
+        lxc exec ${CONTAINER_MASTER} -- systemctl start buildbot-worker
 done

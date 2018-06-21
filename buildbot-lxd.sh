@@ -14,7 +14,7 @@ do
         fi
 done
 
-cat lxd_preseed.yaml | lxd init --preseed
+cat config/lxd_preseed.yaml | lxd init --preseed
 
 for container in master worker-1 worker-2
 do

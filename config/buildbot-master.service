@@ -5,7 +5,7 @@ After=network.target
 [Service]
 User=root
 Group=root
-WorkingDirectory=$HOME/master
+WorkingDirectory=%h/master
 ExecStart=/usr/local/bin/buildbot start --nodaemon
 ExecReload=/bin/kill -HUP $MAINPID
 

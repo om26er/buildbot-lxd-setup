@@ -3,8 +3,6 @@
 set -e
 
 apt update
-apt dist-upgrade -y
-apt autoremove -y
 apt purge lxd* lxc* -y
 snap install lxd
 

@@ -11,6 +11,8 @@ do
         if [ ! -S /var/snap/lxd/common/lxd/unix.socket ]; then
             echo "LXD daemon not started, waiting"
             sleep 1
+        else
+            break
         fi
 done
 

@@ -45,6 +45,6 @@ do
         lxc exec ${worker} -- pip3 install buildbot-worker
         lxc exec ${worker} -- buildbot-worker create-worker ~/worker ${MASTER_CONTAINER_IP} ${worker} secret_supersecret
         lxc file push config/buildbot-worker.service ${worker}/etc/systemd/system/
-        lxc exec ${CONTAINER_MASTER} -- systemctl enable buildbot-worker
-        lxc exec ${CONTAINER_MASTER} -- systemctl start buildbot-worker
+        lxc exec ${worker} -- systemctl enable buildbot-worker
+        lxc exec ${worker} -- systemctl start buildbot-worker
 done

@@ -9,4 +9,4 @@ WorkingDirectory=$HOME/worker
 ExecStart=/usr/local/bin/buildbot-worker start --nodaemon
 
 [Install]
-WantedBy=buildbot-master.service
+WantedBy=multi-user.target

@@ -9,16 +9,8 @@ CONTAINER_WORKER_2=worker-2
 apt update
 apt purge lxd* lxc* -y
 snap install lxd
-
-for i in {1..20}
-do
-        if [ ! -S /var/snap/lxd/common/lxd/unix.socket ]; then
-            echo "LXD daemon not started, waiting"
-            sleep 1
-        else
-            break
-        fi
-done
+echo Waiting 12 seconds so lxd daemon starts
+sleep 12
 
 cat config/lxd_preseed.yaml | lxd init --preseed
 
@@ -32,15 +24,20 @@ do
 done
 
 echo Configuring master
-lxc exec ${CONTAINER_MASTER} -- sh -c 'pip install "buildbot[bundle]"'
+lxc exec ${CONTAINER_MASTER} -- sh -c 'pip3 install "buildbot[bundle]"'
 lxc exec ${CONTAINER_MASTER} -- sh -c 'buildbot create-master ~/master'
 lxc exec ${CONTAINER_MASTER} -- sh -c 'cp ~/master/master.cfg.sample ~/master/master.cfg'
 lxc exec ${CONTAINER_MASTER} -- sh -c 'buildbot start ~/master'
 
+MASTER_CONTAINER_IP=$(lxc exec ${CONTAINER_MASTER} -- sh -c "hostname -I | cut -d ' ' -f1")
+PUBLIC_IP=$(curl ipinfo.io/ip)
+
+lxc config device add ${CONTAINER_MASTER} http proxy listen=tcp:${PUBLIC_IP}:8010 connect=tcp:${MASTER_CONTAINER_IP}:8010 bind=host
+
 echo Configuring workers
-MASTER_IP=$(lxc exec ${CONTAINER_MASTER} -- sh -c "hostname -I | cut -d ' ' -f1")
 for worker in ${CONTAINER_WORKER_1} ${CONTAINER_WORKER_2}
 do
-        lxc exec ${worker} -- sh -c 'pip install buildbot-worker'
+        lxc exec ${worker} -- sh -c 'pip3 install buildbot-worker'
         lxc exec ${worker} -- sh -c 'buildbot-worker create-worker ~/worker ${MASTER_IP} example-worker pass'
+        lxc exec ${worker} -- sh -c 'buildbot-worker start ~/worker'
 done

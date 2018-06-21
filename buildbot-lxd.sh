@@ -26,7 +26,8 @@ done
 echo Configuring master
 lxc exec ${CONTAINER_MASTER} -- pip3 install "buildbot[bundle]"
 lxc exec ${CONTAINER_MASTER} -- buildbot create-master ~/master
-lxc exec ${CONTAINER_MASTER} -- cp ~/master/master.cfg.sample ~/master/master.cfg
+MASTER_HOME=$(lxc exec ${CONTAINER_MASTER} -- sh -c 'echo $HOME')
+lxc file push config/master.cfg ${CONTAINER_MASTER}${MASTER_HOME}/master
 lxc exec ${CONTAINER_MASTER} -- buildbot start ~/master
 
 MASTER_CONTAINER_IP=$(lxc exec ${CONTAINER_MASTER} -- sh -c "hostname -I | cut -d ' ' -f1")
